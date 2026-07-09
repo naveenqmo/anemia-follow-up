@@ -11,10 +11,10 @@
     "clinicalSigns": [
       "Conjunctival Pallor"
     ],
-    "hbValue": "",
-    "callCount": 0,
+    "hbValue": "8.5",
+    "callCount": 2,
     "ifaInitiationDate": "",
-    "trackingStatus": "Awaiting Lab Test",
+    "trackingStatus": "Lab Results Mapped",
     "timestamp": "2026-07-09"
   },
   {
@@ -30,7 +30,7 @@
       "Conjunctival Pallor"
     ],
     "hbValue": "8.5",
-    "callCount": 0,
+    "callCount": 1,
     "ifaInitiationDate": "",
     "trackingStatus": "Lab Results Mapped",
     "timestamp": "2026-07-09"
@@ -48,6 +48,24 @@
       "Conjunctival Pallor"
     ],
     "hbValue": "6.0",
+    "callCount": 0,
+    "ifaInitiationDate": "",
+    "trackingStatus": "Lab Results Mapped",
+    "timestamp": "2026-07-09"
+  },
+  {
+    "id": "id_1783584924615_1y31z",
+    "screeningDate": "09/07/2026",
+    "patientName": "Darsan",
+    "ageString": "5yr 6m",
+    "locationType": "AWC",
+    "institutionSite": "Keelaiyur",
+    "contactNumber": "9842361240",
+    "referralChannel": "PHC",
+    "clinicalSigns": [
+      "Palmar Pallor"
+    ],
+    "hbValue": "9.2",
     "callCount": 0,
     "ifaInitiationDate": "",
     "trackingStatus": "Lab Results Mapped",
