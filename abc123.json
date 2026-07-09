@@ -1,0 +1,20 @@
+[
+  {
+    "id": "id_1783583046629_s8jy7",
+    "screeningDate": "09/07/2026",
+    "patientName": "Mahindra",
+    "ageString": "2yr 2m",
+    "locationType": "School",
+    "institutionSite": "Pahjs",
+    "contactNumber": "1212134568",
+    "referralChannel": "PHC",
+    "clinicalSigns": [
+      "Conjunctival Pallor"
+    ],
+    "hbValue": "",
+    "callCount": 0,
+    "ifaInitiationDate": "",
+    "trackingStatus": "Awaiting Lab Test",
+    "timestamp": "2026-07-09"
+  }
+]
