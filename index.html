@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Anemia Follow Up</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Base configuration for clean PWA feel */
+        body { -webkit-tap-highlight-color: transparent; }
+        .tab-btn.active { border-bottom: 2px solid #0f172a; color: #0f172a; font-weight: 600; }
+        .tab-btn { color: #64748b; font-weight: 500; transition: all 0.2s ease; }
+        
+        /* Pure CSS Chart/Graph Animations & Styling */
+        .progress-bar-segment { transition: width 0.5s ease-in-out; }
+        
+        /* Custom Scrollbar for a polished look */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Toast Animation */
+        @keyframes slideUpFade {
+            0% { transform: translateY(100%); opacity: 0; }
+            10% { transform: translateY(0); opacity: 1; }
+            90% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(100%); opacity: 0; }
+        }
+        .toast-animate { animation: slideUpFade 3s ease-in-out forwards; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased">
+
+    <div id="toast-container" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 hidden">
+        <div class="bg-slate-800 text-white px-6 py-3 rounded-full shadow-lg flex items-center space-x-2 text-sm font-medium">
+            <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+            <span id="toast-message">Action completed successfully</span>
+        </div>
+    </div>
+
+    <div id="auth-gate" class="min-h-screen flex items-center justify-center p-4 bg-slate-100">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 border border-slate-200">
+            <div class="flex justify-center mb-6">
+                <div class="bg-indigo-50 p-3 rounded-full">
+                    <i data-lucide="shield-check" class="w-8 h-8 text-indigo-600"></i>
+                </div>
+            </div>
+            <h1 class="text-2xl font-bold text-center text-slate-800 mb-2">Team Authentication</h1>
+            <p class="text-center text-slate-500 mb-8 text-sm">Secure offline-first registry access</p>
+            
+            <form id="login-form" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Unique Team Identifier Name</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="users" class="w-4 h-4 text-slate-400"></i>
+                        </div>
+                        <input type="text" id="login-team-id" required placeholder="e.g. THIRUMANUR-MHT-2" 
+                            class="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Team Secret Access Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="lock" class="w-4 h-4 text-slate-400"></i>
+                        </div>
+                        <input type="password" id="login-password" required placeholder="••••••••" 
+                            class="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-slate-900 text-white font-semibold py-2.5 rounded-lg hover:bg-slate-800 transition-colors flex justify-center items-center gap-2">
+                    Unlock Workspace <i data-lucide="activity" class="w-4 h-4"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="app-workspace" class="hidden min-h-screen flex flex-col">
+        
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="bg-indigo-600 p-1.5 rounded-md">
+                        <i data-lucide="activity" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <h1 class="text-lg font-bold text-slate-900 tracking-tight">UNIT: <span id="header-team-id" class="text-indigo-600 font-mono"></span></h1>
+                </div>
+            </div>
+            
+            <nav class="flex overflow-x-auto hide-scrollbar px-4 sm:px-6 border-t border-slate-100 bg-slate-50/80 backdrop-blur-sm">
+                <button onclick="switchTab('queue')" id="tab-queue" class="tab-btn active whitespace-nowrap py-3 px-4 text-sm flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i> Call Queue
+                </button>
+                <button onclick="switchTab('entry')" id="tab-entry" class="tab-btn whitespace-nowrap py-3 px-4 text-sm flex items-center gap-2">
+                    <i data-lucide="edit-3" class="w-4 h-4"></i> New Entry
+                </button>
+                <button onclick="switchTab('registry')" id="tab-registry" class="tab-btn whitespace-nowrap py-3 px-4 text-sm flex items-center gap-2">
+                    <i data-lucide="clipboard-list" class="w-4 h-4"></i> Registry
+                </button>
+                <button onclick="switchTab('calls')" id="tab-calls" class="tab-btn whitespace-nowrap py-3 px-4 text-sm flex items-center gap-2">
+                    <i data-lucide="phone-call" class="w-4 h-4"></i> Call Logs
+                </button>
+                <button onclick="switchTab('ops')" id="tab-ops" class="tab-btn whitespace-nowrap py-3 px-4 text-sm flex items-center gap-2">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Cloud Sync
+                </button>
+            </nav>
+        </header>
+
+        <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            
+            <div id="view-queue" class="block space-y-6">
+                <div id="queue-critical-container" class="hidden space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-red-800 flex items-center gap-1">
+                        <i data-lucide="alert-triangle" class="w-4 h-4"></i> Critical Delay (> 14 Days Open)
+                    </h3>
+                    <div id="queue-critical-list" class="space-y-3"></div>
+                </div>
+                
+                <div id="queue-warning-container" class="hidden space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-rose-600 flex items-center gap-1">
+                        <i data-lucide="alert-triangle" class="w-4 h-4"></i> Warning: Pending Lab (7 - 14 Days Open)
+                    </h3>
+                    <div id="queue-warning-list" class="space-y-3"></div>
+                </div>
+                
+                <div id="queue-active-container" class="space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                        <i data-lucide="activity" class="w-4 h-4"></i> Active Triage Cases
+                    </h3>
+                    <div id="queue-active-list" class="space-y-3 text-sm text-slate-500 italic">No active cases pending.</div>
+                </div>
+            </div>
+
+            <div id="view-entry" class="hidden">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-50 px-6 py-4 border-b border-slate-200">
+                        <h2 class="text-lg font-bold text-slate-800">New Patient Screening Entry</h2>
+                    </div>
+                    <form id="new-entry-form" class="p-6 space-y-5">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Screening Date</label>
+                                <input type="date" id="entry-date" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Child Name</label>
+                                <input type="text" id="entry-name" placeholder="Full Name" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Calculated Age Metric</label>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-1/2">
+                                        <input type="number" id="entry-age-years" placeholder="Years" min="0" max="18" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                                    </div>
+                                    <div class="w-1/2">
+                                        <input type="number" id="entry-age-months" placeholder="Months" min="0" max="11" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Facility Target Setup</label>
+                                <select id="entry-facility" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                                    <option value="" disabled selected>Select Origin</option>
+                                    <option value="School">School Deployment</option>
+                                    <option value="AWC">Anganwadi Centre (AWC)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Institution Mapping Site</label>
+                                <input type="text" id="entry-site" placeholder="e.g. PUMS Paluvur" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Parent Contact Number</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <i data-lucide="phone" class="w-4 h-4 text-slate-400"></i>
+                                    </div>
+                                    <input type="tel" id="entry-phone" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit number" required class="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                                </div>
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Referral Channel Allocation</label>
+                                <select id="entry-referral" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                                    <option value="" disabled selected>Select Path Allocation</option>
+                                    <option value="PHC">Primary Health Centre (PHC Lab Work)</option>
+                                    <option value="DEIC">DEIC Unit (Severe Stunting / SAM Case)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="md:col-span-2 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                <label class="block text-sm font-bold text-slate-700 mb-3">Clinical Signs Checklist Tags</label>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    <label class="flex items-center space-x-2 text-sm text-slate-700 bg-white p-2 border border-slate-200 rounded cursor-pointer hover:bg-slate-50">
+                                        <input type="checkbox" name="clinicalSign" value="Conjunctival Pallor" class="rounded text-indigo-600">
+                                        <span>Conjunctival Pallor</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 text-sm text-slate-700 bg-white p-2 border border-slate-200 rounded cursor-pointer hover:bg-slate-50">
+                                        <input type="checkbox" name="clinicalSign" value="Palmar Pallor" class="rounded text-indigo-600">
+                                        <span>Palmar Pallor</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 text-sm text-slate-700 bg-white p-2 border border-slate-200 rounded cursor-pointer hover:bg-slate-50">
+                                        <input type="checkbox" name="clinicalSign" value="Koilonychia (Spoon Nails)" class="rounded text-indigo-600">
+                                        <span>Koilonychia</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 text-sm text-slate-700 bg-white p-2 border border-slate-200 rounded cursor-pointer hover:bg-slate-50">
+                                        <input type="checkbox" name="clinicalSign" value="Atrophic Glossitis" class="rounded text-indigo-600">
+                                        <span>Atrophic Glossitis</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="pt-4 border-t border-slate-100 flex justify-end">
+                            <button type="submit" class="bg-indigo-600 text-white px-6 py-2.5 rounded-lg hover:bg-indigo-700 font-medium flex items-center gap-2 transition-colors">
+                                <i data-lucide="check-circle" class="w-4 h-4"></i> Dispatch & Save Entry
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="view-registry" class="hidden space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                            <i data-lucide="activity" class="w-4 h-4 text-slate-400"></i> Anemia Severity Split
+                        </h3>
+                        <div class="w-full h-4 rounded-full flex overflow-hidden mb-3 bg-slate-100" id="severity-bar-chart">
+                            </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs" id="severity-legend">
+                            </div>
+                    </div>
+                    
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                            <i data-lucide="users" class="w-4 h-4 text-slate-400"></i> Referral Tracking Funnel
+                        </h3>
+                        <div class="flex items-center justify-between text-xs font-medium text-slate-600 mb-1">
+                            <span>Total Screened</span>
+                            <span>Referred</span>
+                            <span>Mapped/Closed</span>
+                        </div>
+                        <div class="relative w-full h-8 bg-slate-100 rounded flex overflow-hidden group">
+                            <div id="funnel-total" class="h-full bg-slate-200 transition-all duration-500" style="width: 100%"></div>
+                            <div id="funnel-referred" class="absolute left-0 top-0 h-full bg-indigo-300 opacity-80 transition-all duration-500" style="width: 0%"></div>
+                            <div id="funnel-mapped" class="absolute left-0 top-0 h-full bg-emerald-400 transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <div class="flex items-center justify-between mt-2 text-xs" id="funnel-metrics">
+                            </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                        <h2 class="text-sm font-bold text-slate-700">Master Data Repository</h2>
+                    </div>
+                    <div class="divide-y divide-slate-100" id="registry-list">
+                        </div>
+                </div>
+            </div>
+
+            <div id="view-calls" class="hidden">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                        <h2 class="text-sm font-bold text-slate-700">Clinical Communication Tracker</h2>
+                    </div>
+                    <div class="divide-y divide-slate-100" id="calls-list">
+                        </div>
+                </div>
+            </div>
+
+            <div id="view-ops" class="hidden">
+                <div class="max-w-2xl mx-auto space-y-6">
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <div class="flex items-start gap-4">
+                            <div class="bg-blue-50 p-3 rounded-lg text-blue-600">
+                                <i data-lucide="refresh-cw" class="w-6 h-6"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h2 class="text-base font-bold text-slate-900 mb-1">One-Click Cloud Sync</h2>
+                                <p class="text-sm text-slate-500 mb-4">Synchronize local cache with centralized GitHub repository block storage via API. Conflicts preserve local edits with maximum recorded call counts.</p>
+                                <button onclick="executeSync()" id="btn-sync" class="w-full sm:w-auto bg-slate-900 text-white px-5 py-2.5 rounded-lg hover:bg-slate-800 font-medium text-sm transition flex items-center justify-center gap-2">
+                                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Execute Sync Sequence
+                                </button>
+                                <p id="sync-status" class="text-xs mt-2 hidden"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <div class="flex items-start gap-4">
+                            <div class="bg-emerald-50 p-3 rounded-lg text-emerald-600">
+                                <i data-lucide="download" class="w-6 h-6"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h2 class="text-base font-bold text-slate-900 mb-1">Export to Excel (CSV)</h2>
+                                <p class="text-sm text-slate-500 mb-4">Generate a clean, zero-server comma-separated values dump of current browser runtime memory.</p>
+                                <button onclick="exportCSV()" class="w-full sm:w-auto bg-emerald-600 text-white px-5 py-2.5 rounded-lg hover:bg-emerald-700 font-medium text-sm transition flex items-center justify-center gap-2">
+                                    <i data-lucide="download" class="w-4 h-4"></i> Download CSV Blob
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="result-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md border border-slate-200 overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800">Log Clinical Result</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="alert-triangle" class="w-5 h-5 hidden"></i> &times;</button>
+            </div>
+            <div class="p-5">
+                <input type="hidden" id="modal-record-id">
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Hemoglobin (Hb) Result (g/dL)</label>
+                    <input type="number" id="modal-hb-val" step="0.1" min="0" max="25" placeholder="e.g. 9.5" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                </div>
+
+                <div id="ifa-date-container" class="mb-5 hidden">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">IFA Initiation Date (Required for Anemic cases)</label>
+                    <input type="date" id="modal-ifa-date" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50 border-amber-300 focus:border-amber-500 focus:ring-amber-500">
+                    <p class="text-xs text-amber-600 mt-1">Hb < 11.0 flags severity protocol.</p>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-2">
+                    <button onclick="closeModal()" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200">Cancel</button>
+                    <button onclick="saveResult()" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center gap-1">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i> Save Result
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // ================= CONFIGURATION & CONSTANTS =================
+        const STORAGE_KEY = 'rbsk_anemia_records_v6';
+        
+        // GITHUB CLOUD SYNC CONFIGURATION (Update variables here)
+        const GITHUB_USER = "YOUR_GITHUB_USERNAME"; 
+        const GITHUB_REPO = "YOUR_REPO_NAME";
+        const GITHUB_TOKEN = "YOUR_PERSONAL_ACCESS_TOKEN";
+
+        // State Variables
+        let records = [];
+        let activeTeamId = "";
+        let activeTeamPassword = "";
+
+        // ================= INITIALIZATION =================
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            checkAuth();
+            document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+            
+            // Listen for Modal Hb changes to reveal IFA Date
+            document.getElementById('modal-hb-val').addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                const ifaContainer = document.getElementById('ifa-date-container');
+                if (val && val < 11.0) {
+                    ifaContainer.classList.remove('hidden');
+                } else {
+                    ifaContainer.classList.add('hidden');
+                    document.getElementById('modal-ifa-date').value = '';
+                }
+            });
+        });
+
+        // ================= AUTHENTICATION =================
+        function checkAuth() {
+            const storedId = localStorage.getItem('rbsk_team_id');
+            const storedPass = localStorage.getItem('rbsk_team_password');
+            if (storedId && storedPass) {
+                activeTeamId = storedId;
+                activeTeamPassword = storedPass;
+                unlockWorkspace();
+            }
+        }
+
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const rawTeam = document.getElementById('login-team-id').value;
+            const rawPass = document.getElementById('login-password').value;
+            
+            const sanitizedTeam = rawTeam.toUpperCase().replace(/[\s\W]+/g, '_');
+            
+            localStorage.setItem('rbsk_team_id', sanitizedTeam);
+            localStorage.setItem('rbsk_team_password', rawPass);
+            
+            activeTeamId = sanitizedTeam;
+            activeTeamPassword = rawPass;
+            
+            unlockWorkspace();
+        });
+
+        function unlockWorkspace() {
+            document.getElementById('auth-gate').classList.add('hidden');
+            document.getElementById('app-workspace').classList.remove('hidden');
+            document.getElementById('header-team-id').textContent = activeTeamId;
+            loadData();
+            switchTab('queue');
+        }
+
+        // ================= DATA MANAGEMENT =================
+        function loadData() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            records = raw ? JSON.parse(raw) : [];
+        }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+            renderAllViews();
+        }
+
+        // ================= DATE PARSER ENGINE =================
+        function calculateDaysOpen(dateString) {
+            try {
+                let parsedDate;
+                if (!dateString) return 0;
+                
+                // Handle DD/MM/YYYY
+                if (dateString.includes('/')) {
+                    const parts = dateString.split('/');
+                    parsedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                } 
+                // Handle YYYY-MM-DD and default formats
+                else {
+                    parsedDate = new Date(dateString);
+                }
+
+                if (isNaN(parsedDate.getTime())) return 0;
+
+                const today = new Date();
+                // Reset times to purely compute day gaps
+                today.setHours(0,0,0,0);
+                parsedDate.setHours(0,0,0,0);
+                
+                const diffTime = today.getTime() - parsedDate.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays > 0 ? diffDays : 0;
+            } catch (e) {
+                console.warn('Date parsing exception bypassed:', e);
+                return 0; // Safe fallback
+            }
+        }
+
+        // ================= NAVIGATION =================
+        const tabs = ['queue', 'entry', 'registry', 'calls', 'ops'];
+        function switchTab(target) {
+            tabs.forEach(t => {
+                document.getElementById(`tab-${t}`).classList.remove('active');
+                document.getElementById(`view-${t}`).classList.add('hidden');
+            });
+            document.getElementById(`tab-${target}`).classList.add('active');
+            document.getElementById(`view-${target}`).classList.remove('hidden');
+            
+            if (target !== 'entry') {
+                renderAllViews();
+            }
+        }
+
+        // ================= RENDERING ENGINE =================
+        function renderAllViews() {
+            renderQueue();
+            renderRegistry();
+            renderCalls();
+            lucide.createIcons();
+        }
+
+        // Render: Call Queue Tab
+        function renderQueue() {
+            const criticalList = document.getElementById('queue-critical-list');
+            const warningList = document.getElementById('queue-warning-list');
+            const activeList = document.getElementById('queue-active-list');
+            
+            criticalList.innerHTML = '';
+            warningList.innerHTML = '';
+            activeList.innerHTML = '';
+            
+            let cCount = 0, wCount = 0, aCount = 0;
+
+            const pendingRecords = records.filter(r => r.trackingStatus === 'Awaiting Lab Test');
+
+            pendingRecords.forEach(record => {
+                const daysOpen = calculateDaysOpen(record.screeningDate);
+                const html = generateQueueCardHTML(record, daysOpen);
+
+                if (daysOpen > 14) {
+                    criticalList.innerHTML += html;
+                    cCount++;
+                } else if (daysOpen >= 7 && daysOpen <= 14) {
+                    warningList.innerHTML += html;
+                    wCount++;
+                } else {
+                    activeList.innerHTML += html;
+                    aCount++;
+                }
+            });
+
+            document.getElementById('queue-critical-container').classList.toggle('hidden', cCount === 0);
+            document.getElementById('queue-warning-container').classList.toggle('hidden', wCount === 0);
+            
+            if (aCount === 0 && pendingRecords.length > 0) {
+                 activeList.innerHTML = '<div class="text-sm text-slate-500 italic py-2">No active cases under 7 days.</div>';
+            } else if (aCount === 0 && pendingRecords.length === 0) {
+                 activeList.innerHTML = '<div class="text-sm text-slate-500 italic py-2">Queue clear. No pending cases.</div>';
+            }
+        }
+
+        function generateQueueCardHTML(record, daysOpen) {
+            let borderClass = 'border-slate-200';
+            let bgClass = 'bg-white';
+            let alertBadge = '';
+
+            if (daysOpen > 14) {
+                borderClass = 'border-red-200';
+                bgClass = 'bg-red-50';
+                alertBadge = `<span class="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded ml-2">${daysOpen} Days Open</span>`;
+            } else if (daysOpen >= 7) {
+                borderClass = 'border-rose-200';
+                bgClass = 'bg-rose-50';
+                alertBadge = `<span class="text-xs font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded ml-2">${daysOpen} Days</span>`;
+            }
+
+            const signsHTML = record.clinicalSigns && record.clinicalSigns.length > 0 
+                ? `<div class="flex flex-wrap gap-1 mt-2">
+                    ${record.clinicalSigns.map(s => `<span class="text-[10px] uppercase font-bold tracking-wider bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded">${s}</span>`).join('')}
+                   </div>` 
+                : '';
+
+            return `
+            <div class="${bgClass} border ${borderClass} rounded-lg p-4 shadow-sm relative">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <h4 class="font-bold text-slate-900 flex items-center">${record.patientName} ${alertBadge}</h4>
+                        <div class="text-xs text-slate-500 flex items-center gap-2 mt-1">
+                            <span class="bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1"><i data-lucide="home" class="w-3 h-3"></i> ${record.locationType}</span>
+                            <span>| Age: ${record.ageString}</span>
+                            <span>| ${record.screeningDate}</span>
+                        </div>
+                    </div>
+                    <a href="tel:${record.contactNumber}" class="bg-blue-100 text-blue-600 p-2 rounded-full hover:bg-blue-200 transition-colors">
+                        <i data-lucide="phone" class="w-4 h-4"></i>
+                    </a>
+                </div>
+                <div class="text-sm text-slate-700 mb-2"><span class="font-medium">Site:</span> ${record.institutionSite}</div>
+                ${signsHTML}
+                <div class="mt-3 pt-3 border-t border-slate-200/60 flex justify-end">
+                    <button onclick="openModal('${record.id}')" class="bg-indigo-600 text-white text-xs font-semibold px-4 py-1.5 rounded flex items-center gap-1 hover:bg-indigo-700">
+                        <i data-lucide="edit-3" class="w-3 h-3"></i> Log Result
+                    </button>
+                </div>
+            </div>`;
+        }
+
+        // Render: Registry Tab (Charts & List)
+        function renderRegistry() {
+            // Analytics Calculations
+            let severe = 0, moderate = 0, mild = 0, normal = 0, pending = 0;
+            let referred = 0, mapped = 0;
+
+            records.forEach(r => {
+                // Funnel counts
+                if (r.referralChannel) referred++;
+                if (r.trackingStatus !== 'Awaiting Lab Test') mapped++;
+
+                // Severity counts
+                if (r.hbValue) {
+                    const hb = parseFloat(r.hbValue);
+                    if (hb < 7.0) severe++;
+                    else if (hb < 10.0) moderate++;
+                    else if (hb < 11.0) mild++;
+                    else normal++;
+                } else {
+                    pending++;
+                }
+            });
+
+            // Paint Severity Matrix
+            const totalHb = severe + moderate + mild + normal;
+            const bar = document.getElementById('severity-bar-chart');
+            const leg = document.getElementById('severity-legend');
+            
+            if (totalHb > 0) {
+                const pSev = (severe/totalHb)*100;
+                const pMod = (moderate/totalHb)*100;
+                const pMil = (mild/totalHb)*100;
+                const pNor = (normal/totalHb)*100;
+
+                bar.innerHTML = `
+                    <div class="bg-red-500 h-full progress-bar-segment" style="width: ${pSev}%"></div>
+                    <div class="bg-amber-500 h-full progress-bar-segment" style="width: ${pMod}%"></div>
+                    <div class="bg-yellow-400 h-full progress-bar-segment" style="width: ${pMil}%"></div>
+                    <div class="bg-emerald-500 h-full progress-bar-segment" style="width: ${pNor}%"></div>
+                `;
+                leg.innerHTML = `
+                    <div class="flex flex-col"><span class="text-slate-400 text-[10px] uppercase font-bold">Severe</span><span class="font-medium text-red-600">${pSev.toFixed(0)}% (${severe})</span></div>
+                    <div class="flex flex-col"><span class="text-slate-400 text-[10px] uppercase font-bold">Moderate</span><span class="font-medium text-amber-600">${pMod.toFixed(0)}% (${moderate})</span></div>
+                    <div class="flex flex-col"><span class="text-slate-400 text-[10px] uppercase font-bold">Mild</span><span class="font-medium text-yellow-600">${pMil.toFixed(0)}% (${mild})</span></div>
+                    <div class="flex flex-col"><span class="text-slate-400 text-[10px] uppercase font-bold">Normal</span><span class="font-medium text-emerald-600">${pNor.toFixed(0)}% (${normal})</span></div>
+                `;
+            } else {
+                bar.innerHTML = '<div class="w-full bg-slate-200 h-full flex items-center justify-center text-[10px] text-slate-400 font-bold">NO LAB DATA</div>';
+                leg.innerHTML = '';
+            }
+
+            // Paint Funnel
+            const totalRecs = records.length;
+            const pRef = totalRecs ? (referred/totalRecs)*100 : 0;
+            const pMap = totalRecs ? (mapped/totalRecs)*100 : 0;
+
+            document.getElementById('funnel-total').style.width = '100%';
+            document.getElementById('funnel-referred').style.width = `${pRef}%`;
+            document.getElementById('funnel-mapped').style.width = `${pMap}%`;
+            
+            document.getElementById('funnel-metrics').innerHTML = `
+                <span class="font-bold text-slate-700">${totalRecs}</span>
+                <span class="font-bold text-indigo-700">${referred}</span>
+                <span class="font-bold text-emerald-700">${mapped}</span>
+            `;
+
+            // Paint List Array
+            const list = document.getElementById('registry-list');
+            list.innerHTML = '';
+            
+            if (records.length === 0) {
+                list.innerHTML = '<div class="p-6 text-center text-slate-400 text-sm">Registry is empty.</div>';
+                return;
+            }
+
+            records.forEach(r => {
+                let badgeClass = 'bg-slate-100 text-slate-600 border-slate-200';
+                let badgeText = 'Pending Lab';
+                
+                if (r.hbValue) {
+                    const hb = parseFloat(r.hbValue);
+                    if (hb < 7.0) { badgeClass = 'text-red-700 bg-red-50 border-red-200'; badgeText = 'Severe Anemia'; }
+                    else if (hb < 10.0) { badgeClass = 'text-amber-700 bg-amber-50 border-amber-200'; badgeText = 'Moderate Anemia'; }
+                    else if (hb < 11.0) { badgeClass = 'text-yellow-800 bg-yellow-50 border-yellow-200'; badgeText = 'Mild Anemia'; }
+                    else { badgeClass = 'text-emerald-700 bg-emerald-50 border-emerald-200'; badgeText = 'Normal Hb'; }
+                }
+
+                // Treatment Protocol Dates logic
+                let reviewHtml = '';
+                if (r.hbValue && parseFloat(r.hbValue) < 11.0 && r.ifaInitiationDate) {
+                    const initDate = new Date(r.ifaInitiationDate);
+                    // Add 90 days
+                    const reviewDate = new Date(initDate.getTime() + (90 * 24 * 60 * 60 * 1000));
+                    const fmtDate = reviewDate.toLocaleDateString('en-GB'); // DD/MM/YYYY approx
+                    reviewHtml = `
+                    <div class="mt-2 bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs px-2 py-1.5 rounded-md flex items-center gap-1.5 font-medium">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> 90-Day Medical Review Due: ${fmtDate}
+                    </div>`;
+                }
+
+                const actionBtn = !r.hbValue 
+                    ? `<button onclick="openModal('${r.id}')" class="text-xs text-indigo-600 font-semibold border border-indigo-200 bg-indigo-50 px-2 py-1 rounded hover:bg-indigo-100">Add Result</button>` 
+                    : `<span class="text-sm font-bold text-slate-800">Hb: ${r.hbValue}</span>`;
+
+                list.innerHTML += `
+                <div class="p-4 hover:bg-slate-50 transition-colors">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-bold text-slate-800">${r.patientName}</h4>
+                            <div class="text-xs text-slate-500 mb-1">${r.ageString} | ${r.locationType}: ${r.institutionSite}</div>
+                            <span class="inline-block border text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${badgeClass}">${badgeText}</span>
+                            ${reviewHtml}
+                        </div>
+                        <div class="flex flex-col items-end gap-2">
+                            <button onclick="deleteRecord('${r.id}')" class="text-slate-400 hover:text-red-500 transition-colors p-1" title="Delete Row">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                            ${actionBtn}
+                        </div>
+                    </div>
+                </div>`;
+            });
+        }
+
+        // Render: Call Logs Tracker
+        function renderCalls() {
+            const list = document.getElementById('calls-list');
+            list.innerHTML = '';
+            
+            if (records.length === 0) {
+                list.innerHTML = '<div class="p-6 text-center text-slate-400 text-sm">No records available.</div>';
+                return;
+            }
+
+            // Sort by pending/callCount to surface needs
+            const sorted = [...records].sort((a,b) => a.callCount - b.callCount);
+
+            sorted.forEach(r => {
+                list.innerHTML += `
+                <div class="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                    <div class="flex-1">
+                        <h4 class="font-bold text-slate-800 text-sm">${r.patientName}</h4>
+                        <div class="text-xs font-mono text-slate-500 mt-0.5">${r.contactNumber}</div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="bg-teal-50 text-teal-700 border border-teal-200 text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+                            <i data-lucide="phone-call" class="w-3 h-3"></i> ${r.callCount} Contacts
+                        </div>
+                        <button onclick="incrementCall('${r.id}')" class="bg-slate-900 text-white p-2 rounded-lg hover:bg-slate-700 transition shadow-sm" title="Log Outgoing Call">
+                            <i data-lucide="phone-outgoing" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>`;
+            });
+        }
+
+        // ================= FORM SUBMISSION & ENTRY ACTIONS =================
+        document.getElementById('new-entry-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // Collect Checkboxes
+            const checkboxes = document.querySelectorAll('input[name="clinicalSign"]:checked');
+            let signsArray = [];
+            checkboxes.forEach((cb) => signsArray.push(cb.value));
+
+            // Generate ID pattern: id_TIMESTAMP_RANDOM
+            const uniqueId = `id_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+            
+            // Combine Age
+            const y = document.getElementById('entry-age-years').value;
+            const m = document.getElementById('entry-age-months').value;
+            const ageString = `${y}yr ${m}m`;
+
+            // Date processing
+            const rawDate = document.getElementById('entry-date').value; 
+            // Format string for standard layout
+            const dateObj = new Date(rawDate);
+            const formattedDate = dateObj.toLocaleDateString('en-GB') || rawDate;
+
+            const newRecord = {
+                id: uniqueId,
+                screeningDate: formattedDate,
+                patientName: document.getElementById('entry-name').value.trim(),
+                ageString: ageString,
+                locationType: document.getElementById('entry-facility').value,
+                institutionSite: document.getElementById('entry-site').value.trim(),
+                contactNumber: document.getElementById('entry-phone').value,
+                referralChannel: document.getElementById('entry-referral').value,
+                clinicalSigns: signsArray,
+                // Defaults
+                hbValue: '',
+                callCount: 0,
+                ifaInitiationDate: '',
+                trackingStatus: 'Awaiting Lab Test',
+                timestamp: rawDate // Store raw format for sorting fallback
+            };
+
+            // Unshift to top
+            records.unshift(newRecord);
+            saveData();
+            
+            // Reset Form
+            document.getElementById('new-entry-form').reset();
+            document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+            
+            showToast('New record dispatched successfully');
+            switchTab('queue');
+        });
+
+        // ================= OPERATIONAL CONTROLS (Modal, Delete, Calls) =================
+        function openModal(id) {
+            document.getElementById('modal-record-id').value = id;
+            document.getElementById('modal-hb-val').value = '';
+            document.getElementById('modal-ifa-date').value = '';
+            document.getElementById('ifa-date-container').classList.add('hidden');
+            
+            document.getElementById('result-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('result-modal').classList.add('hidden');
+        }
+
+        function saveResult() {
+            const id = document.getElementById('modal-record-id').value;
+            const hb = document.getElementById('modal-hb-val').value;
+            const ifaDate = document.getElementById('modal-ifa-date').value;
+            
+            if (!hb) return;
+
+            const idx = records.findIndex(r => r.id === id);
+            if (idx > -1) {
+                records[idx].hbValue = parseFloat(hb).toFixed(1).toString();
+                records[idx].trackingStatus = 'Lab Results Mapped';
+                
+                if (parseFloat(hb) < 11.0 && ifaDate) {
+                    records[idx].ifaInitiationDate = ifaDate;
+                }
+
+                saveData();
+                closeModal();
+                showToast('Lab result successfully mapped');
+            }
+        }
+
+        function deleteRecord(id) {
+            if (window.confirm("Are you sure you want to permanently delete this registry row from memory?")) {
+                records = records.filter(r => r.id !== id);
+                saveData();
+                showToast('Row removed from local storage');
+            }
+        }
+
+        function incrementCall(id) {
+            const idx = records.findIndex(r => r.id === id);
+            if (idx > -1) {
+                records[idx].callCount = (records[idx].callCount || 0) + 1;
+                saveData();
+                showToast('Outgoing call hooked and counted');
+            }
+        }
+
+        function showToast(msg) {
+            const container = document.getElementById('toast-container');
+            document.getElementById('toast-message').textContent = msg;
+            
+            container.classList.remove('hidden');
+            container.classList.remove('toast-animate');
+            void container.offsetWidth; // trigger reflow
+            container.classList.add('toast-animate');
+            
+            setTimeout(() => {
+                container.classList.add('hidden');
+            }, 3000);
+        }
+
+        // ================= SYNC & EXPORT OPERATIONS =================
+
+        // 1. Export to Excel (CSV Blob Parser)
+        function exportCSV() {
+            if (records.length === 0) {
+                alert("No records to export.");
+                return;
+            }
+
+            const headers = [
+                "Child Name", "Age", "Location", "Institution Site", 
+                "Parent Phone Line", "Referral Target Channel", 
+                "Hb Metrics (g/dL)", "Tracking Status", "Date Screened", 
+                "Contact Count Attempts", "Clinical Signs", "IFA Initiation Date"
+            ];
+
+            let csvContent = headers.map(h => `"${h}"`).join(",") + "\n";
+
+            records.forEach(r => {
+                const signsStr = r.clinicalSigns ? r.clinicalSigns.join(", ") : "";
+                
+                const row = [
+                    r.patientName || "",
+                    r.ageString || "",
+                    r.locationType || "",
+                    r.institutionSite || "",
+                    r.contactNumber || "",
+                    r.referralChannel || "",
+                    r.hbValue || "",
+                    r.trackingStatus || "",
+                    r.screeningDate || "",
+                    (r.callCount || 0).toString(),
+                    signsStr,
+                    r.ifaInitiationDate || ""
+                ];
+
+                // Wrap in explicit double quotes, escape internal quotes
+                const csvRow = row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(",");
+                csvContent += csvRow + "\n";
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute("href", url);
+            const safeTeam = activeTeamId || "UNKNOWN";
+            link.setAttribute("download", `RBSK_Anemia_Report_${safeTeam}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast('CSV Blob compiled and downloaded');
+        }
+
+        // 2. One-Click Sync (GitHub API)
+        async function executeSync() {
+            if (!navigator.onLine) {
+                alert("OFFLINE: Cannot establish connection to cloud bucket.");
+                return;
+            }
+
+            const statusTxt = document.getElementById('sync-status');
+            const btn = document.getElementById('btn-sync');
+            
+            statusTxt.classList.remove('hidden');
+            statusTxt.className = "text-xs mt-2 text-indigo-600 font-medium";
+            statusTxt.textContent = "Initiating handshake with GitHub API...";
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+
+            try {
+                const filename = `${activeTeamId.toLowerCase()}.json`;
+                const url = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${filename}`;
+                
+                const headers = {
+                    "Accept": "application/vnd.github.v3+json",
+                    // NOTE: In production, embedding PATs in frontend is risky. 
+                    // Provided here strictly per architectural specs.
+                    "Authorization": `token ${GITHUB_TOKEN}`
+                };
+
+                let fileSha = null;
+                let remoteRecords = [];
+
+                // GET Request
+                const getRes = await fetch(url, { headers });
+                
+                if (getRes.status === 200) {
+                    const getData = await getRes.json();
+                    fileSha = getData.sha;
+                    const decodedContent = decodeURIComponent(escape(atob(getData.content)));
+                    try {
+                        remoteRecords = JSON.parse(decodedContent);
+                    } catch(e) {
+                        console.warn("Parse error on remote data", e);
+                        remoteRecords = [];
+                    }
+                } else if (getRes.status !== 404) {
+                    throw new Error(`API Error: ${getRes.status}`);
+                }
+
+                statusTxt.textContent = "Merging local memory with remote array...";
+                
+                // Mesh/Merge Logic via Map
+                const mergedMap = new Map();
+                
+                // Load remote first
+                remoteRecords.forEach(r => mergedMap.set(r.id, r));
+                
+                // Iterate local and overwrite/merge
+                records.forEach(l => {
+                    if (mergedMap.has(l.id)) {
+                        const r = mergedMap.get(l.id);
+                        // Preserve local changes generally, but maximize callCount permanently
+                        const mergedRecord = { ...l, callCount: Math.max(l.callCount || 0, r.callCount || 0) };
+                        mergedMap.set(l.id, mergedRecord);
+                    } else {
+                        mergedMap.set(l.id, l);
+                    }
+                });
+
+                const finalUnifiedArray = Array.from(mergedMap.values());
+                
+                statusTxt.textContent = "Encoding and executing PUT request...";
+
+                // PUT Request
+                const payloadStr = JSON.stringify(finalUnifiedArray, null, 2);
+                const encodedContent = btoa(unescape(encodeURIComponent(payloadStr)));
+
+                const putBody = {
+                    message: `Automated sync from ${activeTeamId} via PWA`,
+                    content: encodedContent
+                };
+                if (fileSha) putBody.sha = fileSha;
+
+                const putRes = await fetch(url, {
+                    method: 'PUT',
+                    headers: headers,
+                    body: JSON.stringify(putBody)
+                });
+
+                if (putRes.status === 200 || putRes.status === 201) {
+                    // Update Local State with merged view
+                    records = finalUnifiedArray;
+                    saveData();
+                    statusTxt.className = "text-xs mt-2 text-emerald-600 font-medium";
+                    statusTxt.textContent = "Sync sequence completed successfully.";
+                    showToast('Cloud file cabinet synced');
+                } else {
+                    throw new Error(`PUT Failed: ${putRes.status}`);
+                }
+                
+            } catch (err) {
+                console.error(err);
+                statusTxt.className = "text-xs mt-2 text-red-600 font-medium";
+                statusTxt.textContent = `Sync failed: ${err.message}`;
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+                setTimeout(() => statusTxt.classList.add('hidden'), 5000);
+            }
+        }
+
+    </script>
+</body>
+</html>
